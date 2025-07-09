@@ -10,58 +10,41 @@ local playerGui = player:WaitForChild("PlayerGui")
 -- Biến kiểm soát cooldown
 local isOnCooldown = false
 
--- Biến lưu trữ UI components
-local screenGui
-local mainFrame
-local stealButton
+-- Tạo ScreenGui với ResetOnSpawn = false
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "StealGui"
+screenGui.ResetOnSpawn = false -- QUAN TRỌNG: Ngăn GUI reset khi respawn
+screenGui.Parent = playerGui
 
--- Hàm tạo UI
-local function createUI()
-    -- Xóa UI cũ nếu có
-    local oldGui = playerGui:FindFirstChild("StealGui")
-    if oldGui then
-        oldGui:Destroy()
-    end
-    
-    -- Tạo ScreenGui mới
-    screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "StealGui"
-    screenGui.ResetOnSpawn = false -- Quan trọng: không reset khi respawn
-    screenGui.Parent = playerGui
+-- Tạo Frame chính (nền đen)
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 200, 0, 60)
+mainFrame.Position = UDim2.new(0.5, -100, 0.1, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
 
-    -- Tạo Frame chính (nền đen)
-    mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 200, 0, 60)
-    mainFrame.Position = UDim2.new(0.5, -100, 0.1, 0)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    mainFrame.BorderSizePixel = 0
-    mainFrame.Parent = screenGui
+-- Bo tròn góc cho frame chính
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 10)
+mainCorner.Parent = mainFrame
 
-    -- Bo tròn góc cho frame chính
-    local mainCorner = Instance.new("UICorner")
-    mainCorner.CornerRadius = UDim.new(0, 10)
-    mainCorner.Parent = mainFrame
+-- Tạo nút bấm (màu xanh)
+local stealButton = Instance.new("TextButton")
+stealButton.Size = UDim2.new(1, -10, 1, -10)
+stealButton.Position = UDim2.new(0, 5, 0, 5)
+stealButton.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
+stealButton.Text = "Steal | KDZ Hub"
+stealButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+stealButton.TextScaled = true
+stealButton.Font = Enum.Font.SourceSansBold
+stealButton.BorderSizePixel = 0
+stealButton.Parent = mainFrame
 
-    -- Tạo nút bấm (màu xanh)
-    stealButton = Instance.new("TextButton")
-    stealButton.Size = UDim2.new(1, -10, 1, -10)
-    stealButton.Position = UDim2.new(0, 5, 0, 5)
-    stealButton.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
-    stealButton.Text = "Steal | KDZ Hub"
-    stealButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    stealButton.TextScaled = true
-    stealButton.Font = Enum.Font.SourceSansBold
-    stealButton.BorderSizePixel = 0
-    stealButton.Parent = mainFrame
-
-    -- Bo tròn góc cho nút bấm
-    local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 8)
-    buttonCorner.Parent = stealButton
-    
-    -- Kết nối events cho button
-    connectButtonEvents()
-end
+-- Bo tròn góc cho nút bấm
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 8)
+buttonCorner.Parent = stealButton
 
 -- Hàm teleport người chơi
 local function teleportPlayer(x, y, z)
@@ -102,18 +85,11 @@ local function findPlayerBase()
                         if surfaceGui then
                             local username = surfaceGui:FindFirstChild("Username")
                             if username then
-                                print("Tycoon" .. i .. " Username: " .. username.Text)
-                                print("Player Name: " .. player.Name)
-                                print("Display Name: " .. player.DisplayName)
-                                
-                                -- Thử nhiều cách so sánh
                                 if username.Text == "@" .. player.Name or 
                                    username.Text == player.Name or 
                                    username.Text == "@" .. player.DisplayName or
                                    username.Text == player.DisplayName then
-                                    print("Tìm thấy base của người chơi tại: " .. tycoonName)
                                     local basePosition = boardPart.Position
-                                    -- Hạ xuống một chút
                                     return Vector3.new(basePosition.X, basePosition.Y - 5, basePosition.Z)
                                 end
                             end
@@ -139,13 +115,10 @@ local function startCountdown()
         
         if countdown < 0 then
             -- Teleport về base
-            print("Đang tìm base của người chơi...")
             local playerBase = findPlayerBase()
             if playerBase then
-                print("Teleport về base tại: " .. tostring(playerBase))
                 teleportPlayer(playerBase.X, playerBase.Y, playerBase.Z)
             else
-                print("Không tìm thấy base, teleport về spawn")
                 -- Fallback về spawn hoặc vị trí mặc định
                 local spawnLocation = game.Workspace:FindFirstChild("SpawnLocation")
                 if spawnLocation then
@@ -166,37 +139,44 @@ local function startCountdown()
     updateCountdown()
 end
 
--- Hàm kết nối events cho button
-local function connectButtonEvents()
-    -- Xử lý khi nhấn nút
-    stealButton.MouseButton1Click:Connect(function()
-        if isOnCooldown then return end
-        
-        isOnCooldown = true
-        
-        -- Teleport đến vị trí chỉ định
-        teleportPlayer(51.59375, 100, 140.355255)
-        
-        -- Bắt đầu đếm ngược
-        spawn(function()
-            startCountdown()
-        end)
-    end)
+-- Xử lý khi nhấn nút
+stealButton.MouseButton1Click:Connect(function()
+    if isOnCooldown then return end
+    
+    isOnCooldown = true
+    
+    -- Teleport đến vị trí chỉ định
+    teleportPlayer(51.59375, 100, 140.355255)
+    
+    -- Bắt đầu đếm ngược
+    spawn(startCountdown)
+end)
 
-    -- Hiệu ứng hover cho nút bấm
-    stealButton.MouseEnter:Connect(function()
-        if not isOnCooldown then
-            local tween = TweenService:Create(stealButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 140, 220)})
-            tween:Play()
+-- Hiệu ứng hover cho nút bấm
+stealButton.MouseEnter:Connect(function()
+    if not isOnCooldown then
+        TweenService:Create(stealButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 140, 220)}):Play()
+    end
+end)
+
+stealButton.MouseLeave:Connect(function()
+    if not isOnCooldown then
+        TweenService:Create(stealButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 162, 255)}):Play()
+    end
+end)
+
+-- QUAN TRỌNG: Xử lý sự kiện khi nhân vật chết
+player.CharacterAdded:Connect(function(character)
+    character:WaitForChild("Humanoid").Died:Connect(function()
+        -- Đảm bảo GUI vẫn hiển thị khi chết
+        if not screenGui.Parent then
+            screenGui.Parent = playerGui
         end
+        
+        -- Reset trạng thái cooldown
+        isOnCooldown = false
+        stealButton.Text = "Steal | KDZ Hub"
     end)
+end)
 
-    stealButton.MouseLeave:Connect(function()
-        if not isOnCooldown then
-            local tween = TweenService:Create(stealButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 162, 255)})
-            tween:Play()
-        end
-    end)
-end
-
-print("Steal Script loaded successfully!")
+print("Steal Script loaded successfully! Menu sẽ không biến mất khi chết")
