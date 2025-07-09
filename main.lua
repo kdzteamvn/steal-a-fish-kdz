@@ -5,7 +5,6 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
--- Bảng để lưu trữ ESP objects
 local espObjects = {}
 
 -- Hàm tạo ESP Text
