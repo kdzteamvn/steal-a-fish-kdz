@@ -1,4 +1,4 @@
--- Roblox Steal Script với UI
+-- Robl
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -57,10 +57,16 @@ end
 local function findPlayerBase()
     local workspace = game.Workspace
     local mapFolder = workspace:FindFirstChild("Map")
-    if not mapFolder then return nil end
+    if not mapFolder then 
+        print("Không tìm thấy Map folder")
+        return nil 
+    end
     
     local tycoonsFolder = mapFolder:FindFirstChild("Tycoons")
-    if not tycoonsFolder then return nil end
+    if not tycoonsFolder then 
+        print("Không tìm thấy Tycoons folder")
+        return nil 
+    end
     
     -- Lặp qua từng tycoon từ 1 đến 8
     for i = 1, 8 do
@@ -77,11 +83,21 @@ local function findPlayerBase()
                         local surfaceGui = boardPart:FindFirstChild("SurfaceGui")
                         if surfaceGui then
                             local username = surfaceGui:FindFirstChild("Username")
-                            if username and username.Text == "@" .. player.Name then
-                                -- Tìm thấy base của người chơi
-                                local basePosition = boardPart.Position
-                                -- Hạ xuống một chút
-                                return Vector3.new(basePosition.X, basePosition.Y - 5, basePosition.Z)
+                            if username then
+                                print("Tycoon" .. i .. " Username: " .. username.Text)
+                                print("Player Name: " .. player.Name)
+                                print("Display Name: " .. player.DisplayName)
+                                
+                                -- Thử nhiều cách so sánh
+                                if username.Text == "@" .. player.Name or 
+                                   username.Text == player.Name or 
+                                   username.Text == "@" .. player.DisplayName or
+                                   username.Text == player.DisplayName then
+                                    print("Tìm thấy base của người chơi tại: " .. tycoonName)
+                                    local basePosition = boardPart.Position
+                                    -- Hạ xuống một chút
+                                    return Vector3.new(basePosition.X, basePosition.Y - 5, basePosition.Z)
+                                end
                             end
                         end
                     end
@@ -90,6 +106,7 @@ local function findPlayerBase()
         end
     end
     
+    print("Không tìm thấy base của người chơi")
     return nil
 end
 
@@ -104,9 +121,18 @@ local function startCountdown()
         
         if countdown < 0 then
             -- Teleport về base
+            print("Đang tìm base của người chơi...")
             local playerBase = findPlayerBase()
             if playerBase then
+                print("Teleport về base tại: " .. tostring(playerBase))
                 teleportPlayer(playerBase.X, playerBase.Y, playerBase.Z)
+            else
+                print("Không tìm thấy base, teleport về spawn")
+                -- Fallback về spawn hoặc vị trí mặc định
+                local spawnLocation = game.Workspace:FindFirstChild("SpawnLocation")
+                if spawnLocation then
+                    teleportPlayer(spawnLocation.Position.X, spawnLocation.Position.Y + 5, spawnLocation.Position.Z)
+                end
             end
             
             -- Reset UI
