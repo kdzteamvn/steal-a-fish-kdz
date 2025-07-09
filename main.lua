@@ -1,210 +1,237 @@
--- Roblox Auto Check Time & ESP Script (Fixed Version)
--- Script tự động kiểm tra thời gian nhà và hiển thị ESP
+-- Roblox Tycoon Auto Check Script
+-- Tự động kiểm tra thời gian base, ESP, noclip và tăng tốc độ
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local StarterGui = game:Game("StarterGui")
+local UserInputService = game:GetService("UserInputService")
 
-local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local Camera = workspace.CurrentCamera
 
--- Bảng để lưu trữ ESP objects
-local espObjects = {}
+-- Biến toàn cục
+local ESP_FOLDER = Instance.new("Folder")
+ESP_FOLDER.Name = "ESP_FOLDER"
+ESP_FOLDER.Parent = PlayerGui
+
+local isNoclipEnabled = true
+local originalSpeed = 16
+local currentSpeed = 50
 
 -- Hàm tạo ESP Text
 local function createESPText(position, text, color)
-    -- Tạo BillboardGui
-    local billboardGui = Instance.new("BillboardGui")
-    billboardGui.Size = UDim2.new(0, 200, 0, 50)
-    billboardGui.StudsOffset = Vector3.new(0, 8, 0) -- Đặt cao lên như yêu cầu
-    billboardGui.AlwaysOnTop = true
-    billboardGui.LightInfluence = 0
-    billboardGui.Parent = camera
-
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "ESP_GUI"
+    screenGui.Parent = ESP_FOLDER
+    
     local textLabel = Instance.new("TextLabel")
-    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.Size = UDim2.new(0, 200, 0, 50)
+    textLabel.Position = UDim2.new(0, 0, 0, 0)
     textLabel.BackgroundTransparency = 1
     textLabel.Text = text
-    textLabel.TextColor3 = color
+    textLabel.TextColor3 = color or Color3.new(1, 1, 1)
     textLabel.TextStrokeTransparency = 0
-    textLabel.TextStrokeColor3 = Color3.new(0, 2, 0)
-    textLabel.Font = Enum.Font.SourceSansBold
-    textLabel.TextSize = 18
     textLabel.TextScaled = true
-    textLabel.Parent = billboardGui
-
-    -- Tạo attachment để gắn BillboardGui
-    local attachment = Instance.new("Attachment")
-    attachment.Parent = workspace.Terrain
-    attachment.WorldPosition = position
-    billboardGui.Adornee = attachment
-
-    return {
-        billboard = billboardGui,
-        attachment = attachment,
-        textLabel = textLabel
-    }
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.Parent = screenGui
+    
+    local connection
+    connection = RunService.Heartbeat:Connect(function()
+        local camera = workspace.CurrentCamera
+        if camera and position then
+            local screenPoint, onScreen = camera:WorldToScreenPoint(position)
+            if onScreen then
+                textLabel.Position = UDim2.new(0, screenPoint.X - 100, 0, screenPoint.Y - 25)
+                textLabel.Visible = true
+            else
+                textLabel.Visible = false
+            end
+        else
+            textLabel.Visible = false
+        end
+    end)
+    
+    -- Cleanup khi ESP bị xóa
+    local cleanupConnection
+    cleanupConnection = ESP_FOLDER.ChildRemoved:Connect(function(child)
+        if child == screenGui then
+            connection:Disconnect()
+            cleanupConnection:Disconnect()
+        end
+    end)
+    
+    return screenGui
 end
 
--- Hàm cập nhật ESP cho một tycoon
-local function updateESP(tycoonNumber)
-    local tycoonName = "Tycoon" .. tycoonNumber
+-- Hàm kiểm tra thời gian của một tycoon
+local function checkTycoonTime(tycoonNumber)
+    local tycoon = workspace.Map.Tycoons:FindFirstChild("Tycoon" .. tycoonNumber)
+    if not tycoon then return nil end
     
-    -- Xóa ESP cũ nếu có
-    if espObjects[tycoonNumber] then
-        if espObjects[tycoonNumber].billboard then
-            espObjects[tycoonNumber].billboard:Destroy()
-        end
-        if espObjects[tycoonNumber].attachment then
-            espObjects[tycoonNumber].attachment:Destroy()
-        end
-        espObjects[tycoonNumber] = nil
-    end
-
-    -- Kiểm tra xem tycoon có tồn tại không
-    if not workspace.Map or not workspace.Map.Tycoons or not workspace.Map.Tycoons:FindFirstChild(tycoonName) then
-        return
-    end
-
-    local tycoon = workspace.Map.Tycoons[tycoonName]
+    -- Kiểm tra username trước
+    local boardPath = tycoon:FindFirstChild("Tycoon")
+    if not boardPath then return nil end
     
-    -- Kiểm tra các thành phần cần thiết
-    if not tycoon:FindFirstChild("Tycoon") then
-        return
-    end
-
-    local tycoonMain = tycoon.Tycoon
+    local board = boardPath:FindFirstChild("Board")
+    if not board then return nil end
     
-    -- Kiểm tra username path
-    local usernamePath = nil
-    if tycoonMain:FindFirstChild("Board") and tycoonMain.Board:FindFirstChild("Board") and 
-       tycoonMain.Board.Board:FindFirstChild("SurfaceGui") and tycoonMain.Board.Board.SurfaceGui:FindFirstChild("Username") then
-        usernamePath = tycoonMain.Board.Board.SurfaceGui.Username
+    local boardPart = board:FindFirstChild("Board")
+    if not boardPart then return nil end
+    
+    local surfaceGui = boardPart:FindFirstChild("SurfaceGui")
+    if not surfaceGui then return nil end
+    
+    local username = surfaceGui:FindFirstChild("Username")
+    if not username then return nil end
+    
+    -- Kiểm tra xem có player trong base không
+    if username.Text == "No Owner!" then
+        return "NO PLAYER IN BASE"
     end
     
-    -- Kiểm tra time path
-    local timePath = nil
-    if tycoonMain:FindFirstChild("ForcefieldFolder") and tycoonMain.ForcefieldFolder:FindFirstChild("Screen") and 
-       tycoonMain.ForcefieldFolder.Screen:FindFirstChild("Screen") and 
-       tycoonMain.ForcefieldFolder.Screen.Screen:FindFirstChild("SurfaceGui") and 
-       tycoonMain.ForcefieldFolder.Screen.Screen.SurfaceGui:FindFirstChild("Time") then
-        timePath = tycoonMain.ForcefieldFolder.Screen.Screen.SurfaceGui.Time
-    end
+    -- Nếu có player, kiểm tra thời gian
+    local forceFieldFolder = boardPath:FindFirstChild("ForcefieldFolder")
+    if not forceFieldFolder then return nil end
     
-    -- Kiểm tra handle path
-    local handlePath = nil
-    if tycoonMain:FindFirstChild("ForcefieldFolder") and tycoonMain.ForcefieldFolder:FindFirstChild("Screen") then
-        handlePath = tycoonMain.ForcefieldFolder.Screen
-    end
-
-    -- Nếu thiếu bất kỳ thành phần nào
-    if not usernamePath or not timePath or not handlePath then
-        return
-    end
-
-    -- Kiểm tra có người ở trong base không
-    if usernamePath.Text == "No Owner!" then
-        -- Tạo ESP hiển thị "NO PLAYER IN BASE"
-        local espObject = createESPText(
-            handlePath.Position + Vector3.new(0, 8, 0),
-            "NO PLAYER IN BASE",
-            Color3.new(1, 0.5, 0) -- Màu cam
-        )
-        espObjects[tycoonNumber] = espObject
-        return
-    end
-
-    -- Kiểm tra thời gian
-    local timeText = timePath.Text
-    local espText = ""
-    local color = Color3.new(0, 1, 0) -- Mặc định màu xanh lá
-
-    if timeText == "0s" then
-        espText = "BASE IS UNLOCK"
-        color = Color3.new(0, 1, 0) -- Màu xanh lá
+    local screen = forceFieldFolder:FindFirstChild("Screen")
+    if not screen then return nil end
+    
+    local screenPart = screen:FindFirstChild("Screen")
+    if not screenPart then return nil end
+    
+    local screenSurfaceGui = screenPart:FindFirstChild("SurfaceGui")
+    if not screenSurfaceGui then return nil end
+    
+    local timeLabel = screenSurfaceGui:FindFirstChild("Time")
+    if not timeLabel then return nil end
+    
+    local time = timeLabel.Text
+    
+    if time == "0s" then
+        return "BASE IS UNLOCK"
     else
-        espText = "TIME BASE: " .. timeText
-        color = Color3.new(1, 0, 0) -- Màu đỏ
+        return "TIME BASE: " .. time
     end
-
-    -- Tạo ESP mới
-    local espObject = createESPText(
-        handlePath.Position + Vector3.new(0, 8, 0),
-        espText,
-        color
-    )
-    espObjects[tycoonNumber] = espObject
 end
 
--- Hàm chính để cập nhật tất cả ESP
-local function updateAllESP()
+-- Hàm lấy vị trí Handle của tycoon
+local function getTycoonPosition(tycoonNumber)
+    local tycoon = workspace.Map.Tycoons:FindFirstChild("Tycoon" .. tycoonNumber)
+    if not tycoon then return nil end
+    
+    local handle = tycoon:FindFirstChild("Handle")
+    if not handle then return nil end
+    
+    -- Đặt ESP cao hơn 20 studs từ Handle
+    return handle.Position + Vector3.new(0, 20, 0)
+end
+
+-- Hàm cập nhật ESP cho tất cả tycoon
+local function updateESP()
+    -- Xóa ESP cũ
+    for _, child in pairs(ESP_FOLDER:GetChildren()) do
+        child:Destroy()
+    end
+    
+    -- Tạo ESP mới cho từng tycoon
     for i = 1, 8 do
-        pcall(function()
-            updateESP(i)
-        end)
-    end
-end
-
--- Hàm thiết lập Noclip
-local function enableNoclip()
-    local character = player.Character
-    if character then
-        for _, part in pairs(character:GetChildren()) do
-            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                part.CanCollide = false
+        local position = getTycoonPosition(i)
+        if position then
+            local status = checkTycoonTime(i)
+            if status then
+                local color = Color3.new(1, 1, 1) -- Màu trắng mặc định
+                
+                if status == "NO PLAYER IN BASE" then
+                    color = Color3.new(1, 0.5, 0.5) -- Màu đỏ nhạt
+                elseif status == "BASE IS UNLOCK" then
+                    color = Color3.new(0.5, 1, 0.5) -- Màu xanh lá
+                else
+                    color = Color3.new(1, 1, 0.5) -- Màu vàng
+                end
+                
+                createESPText(position, "TYCOON " .. i .. "\n" .. status, color)
             end
         end
     end
 end
 
--- Hàm thiết lập WalkSpeed
-local function setWalkSpeed()
-    local character = player.Character
-    if character then
-        local humanoid = character:FindFirstChild("Humanoid")
-        if humanoid then
-            humanoid.WalkSpeed = 150 -- Tăng walkspeed lên 150
+-- Hàm thiết lập Noclip
+local function setupNoclip()
+    if not LocalPlayer.Character then return end
+    
+    local character = LocalPlayer.Character
+    local humanoid = character:FindFirstChild("Humanoid")
+    
+    if humanoid then
+        -- Thiết lập tốc độ di chuyển
+        humanoid.WalkSpeed = 50
+        
+        -- Thiết lập noclip
+        for _, part in pairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
         end
+        
+        -- Bật noclip cho phần mới được thêm vào
+        character.DescendantAdded:Connect(function(descendant)
+            if descendant:IsA("BasePart") then
+                descendant.CanCollide = false
+            end
+        end)
     end
 end
 
--- Hàm xử lý khi player spawn
-local function onCharacterAdded(character)
-    wait(1) -- Chờ character load xong
+-- Hàm chính
+local function main()
+    print("=== ROBLOX TYCOON AUTO CHECK SCRIPT STARTED ===")
+    print("- ESP sẽ hiển thị thông tin thời gian của từng base")
+    print("- Noclip và tốc độ 50 đã được bật")
+    print("- Script sẽ tự động cập nhật thông tin")
     
-    -- Thiết lập WalkSpeed
-    setWalkSpeed()
+    -- Thiết lập noclip khi spawn
+    if LocalPlayer.Character then
+        setupNoclip()
+    end
     
-    -- Thiết lập Noclip liên tục
-    local connection
-    connection = RunService.Heartbeat:Connect(function()
-        if character.Parent then
-            enableNoclip()
-        else
-            connection:Disconnect()
+    -- Thiết lập noclip khi respawn
+    LocalPlayer.CharacterAdded:Connect(function(character)
+        wait(1) -- Đợi character load hoàn toàn
+        setupNoclip()
+    end)
+    
+    -- Cập nhật ESP liên tục
+    local espUpdateConnection = RunService.Heartbeat:Connect(function()
+        updateESP()
+    end)
+    
+    -- Duy trì noclip liên tục
+    local noclipConnection = RunService.Stepped:Connect(function()
+        if LocalPlayer.Character and isNoclipEnabled then
+            for _, part in pairs(LocalPlayer.Character:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+    
+    -- Cleanup khi player rời game
+    Players.PlayerRemoving:Connect(function(player)
+        if player == LocalPlayer then
+            espUpdateConnection:Disconnect()
+            noclipConnection:Disconnect()
         end
     end)
 end
 
--- Kết nối sự kiện
-if player.Character then
-    onCharacterAdded(player.Character)
-end
-player.CharacterAdded:Connect(onCharacterAdded)
-
--- Bắt đầu chạy ESP update loop
+-- Khởi chương trình
 spawn(function()
-    while true do
-        updateAllESP()
-        wait(1) -- Cập nhật mỗi giây
-    end
+    main()
 end)
 
--- Thông báo script đã load
-print("Auto Check Time & ESP Script loaded successfully!")
-print("Features:")
-print("- Auto check time for all tycoons (1-8)")
-print("- ESP text display for each base")
-print("- Noclip enabled")
-print("- Walkspeed set to 150")
+-- Thiết lập noclip ngay lập tức nếu character đã có
+if LocalPlayer.Character then
+    setupNoclip()
+end
