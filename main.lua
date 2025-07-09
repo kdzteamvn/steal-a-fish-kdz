@@ -1,19 +1,26 @@
+-- Roblox Auto Check Time & ESP Script (Fixed Version)
+-- Script tự động kiểm tra thời gian nhà và hiển thị ESP
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local StarterGui = game:Game("StarterGui")
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
+-- Bảng để lưu trữ ESP objects
 local espObjects = {}
 
 -- Hàm tạo ESP Text
 local function createESPText(position, text, color)
+    -- Tạo BillboardGui
     local billboardGui = Instance.new("BillboardGui")
     billboardGui.Size = UDim2.new(0, 200, 0, 50)
-    billboardGui.StudsOffset = Vector3.new(0, 5, 0) -- Đặt cao lên như yêu cầu
+    billboardGui.StudsOffset = Vector3.new(0, 8, 0) -- Đặt cao lên như yêu cầu
     billboardGui.AlwaysOnTop = true
-    billboardGui.Parent = workspace.CurrentCamera
+    billboardGui.LightInfluence = 0
+    billboardGui.Parent = camera
 
     local textLabel = Instance.new("TextLabel")
     textLabel.Size = UDim2.new(1, 0, 1, 0)
@@ -21,9 +28,10 @@ local function createESPText(position, text, color)
     textLabel.Text = text
     textLabel.TextColor3 = color
     textLabel.TextStrokeTransparency = 0
-    textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    textLabel.TextStrokeColor3 = Color3.new(0, 2, 0)
     textLabel.Font = Enum.Font.SourceSansBold
     textLabel.TextSize = 18
+    textLabel.TextScaled = true
     textLabel.Parent = billboardGui
 
     -- Tạo attachment để gắn BillboardGui
@@ -54,14 +62,43 @@ local function updateESP(tycoonNumber)
         espObjects[tycoonNumber] = nil
     end
 
-    -- Path để check username
-    local usernamePath = workspace.Map.Tycoons[tycoonName].Tycoon.Board.Board.SurfaceGui.Username
-    -- Path để check thời gian
-    local timePath = workspace.Map.Tycoons[tycoonName].Tycoon.ForcefieldFolder.Screen.Screen.SurfaceGui.Time
-    -- Path để lấy vị trí Handle
-    local handlePath = workspace.Map.Tycoons[tycoonName].Tycoon.ForcefieldFolder.Screen
+    -- Kiểm tra xem tycoon có tồn tại không
+    if not workspace.Map or not workspace.Map.Tycoons or not workspace.Map.Tycoons:FindFirstChild(tycoonName) then
+        return
+    end
 
-    -- Kiểm tra xem các path có tồn tại không
+    local tycoon = workspace.Map.Tycoons[tycoonName]
+    
+    -- Kiểm tra các thành phần cần thiết
+    if not tycoon:FindFirstChild("Tycoon") then
+        return
+    end
+
+    local tycoonMain = tycoon.Tycoon
+    
+    -- Kiểm tra username path
+    local usernamePath = nil
+    if tycoonMain:FindFirstChild("Board") and tycoonMain.Board:FindFirstChild("Board") and 
+       tycoonMain.Board.Board:FindFirstChild("SurfaceGui") and tycoonMain.Board.Board.SurfaceGui:FindFirstChild("Username") then
+        usernamePath = tycoonMain.Board.Board.SurfaceGui.Username
+    end
+    
+    -- Kiểm tra time path
+    local timePath = nil
+    if tycoonMain:FindFirstChild("ForcefieldFolder") and tycoonMain.ForcefieldFolder:FindFirstChild("Screen") and 
+       tycoonMain.ForcefieldFolder.Screen:FindFirstChild("Screen") and 
+       tycoonMain.ForcefieldFolder.Screen.Screen:FindFirstChild("SurfaceGui") and 
+       tycoonMain.ForcefieldFolder.Screen.Screen.SurfaceGui:FindFirstChild("Time") then
+        timePath = tycoonMain.ForcefieldFolder.Screen.Screen.SurfaceGui.Time
+    end
+    
+    -- Kiểm tra handle path
+    local handlePath = nil
+    if tycoonMain:FindFirstChild("ForcefieldFolder") and tycoonMain.ForcefieldFolder:FindFirstChild("Screen") then
+        handlePath = tycoonMain.ForcefieldFolder.Screen
+    end
+
+    -- Nếu thiếu bất kỳ thành phần nào
     if not usernamePath or not timePath or not handlePath then
         return
     end
@@ -70,7 +107,7 @@ local function updateESP(tycoonNumber)
     if usernamePath.Text == "No Owner!" then
         -- Tạo ESP hiển thị "NO PLAYER IN BASE"
         local espObject = createESPText(
-            handlePath.Position + Vector3.new(0, 5, 0),
+            handlePath.Position + Vector3.new(0, 8, 0),
             "NO PLAYER IN BASE",
             Color3.new(1, 0.5, 0) -- Màu cam
         )
@@ -93,7 +130,7 @@ local function updateESP(tycoonNumber)
 
     -- Tạo ESP mới
     local espObject = createESPText(
-        handlePath.Position + Vector3.new(0, 5, 0),
+        handlePath.Position + Vector3.new(0, 8, 0),
         espText,
         color
     )
@@ -127,7 +164,7 @@ local function setWalkSpeed()
     if character then
         local humanoid = character:FindFirstChild("Humanoid")
         if humanoid then
-            humanoid.WalkSpeed = 10
+            humanoid.WalkSpeed = 150 -- Tăng walkspeed lên 150
         end
     end
 end
@@ -170,4 +207,4 @@ print("Features:")
 print("- Auto check time for all tycoons (1-8)")
 print("- ESP text display for each base")
 print("- Noclip enabled")
-print("- Walkspeed set to 10")
+print("- Walkspeed set to 150")
