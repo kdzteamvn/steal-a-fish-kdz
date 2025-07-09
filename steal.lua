@@ -106,7 +106,7 @@ end
 
 -- Hàm đếm ngược
 local function startCountdown()
-    local countdown = 5
+    local countdown = 10
     
     -- Cập nhật text mỗi giây
     local function updateCountdown()
