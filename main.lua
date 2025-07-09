@@ -7,7 +7,7 @@ local humanoid = character:WaitForChild("Humanoid")
 -- CẤU HÌNH
 local ESP_HEIGHT = 8 -- Độ cao ESP (stud)
 local TEXT_SIZE = 35 -- Kích thước chữ ESP
-local SPEED_MULTIPLIER = 7.5 -- Tốc độ chạy nhanh
+local SPEED_MULTIPLIER = 3 -- Tốc độ chạy nhanh
 local NOCLIP_SPEED = 10 -- Tốc độ noclip
 
 -- BIẾN TRẠNG THÁI
@@ -176,7 +176,7 @@ end)
 antiRagdoll()
 enableSpeed()
 enableNoclip()
-notify('System', 'All features auto-enabled! Speed x7.5 + Noclip + ESP active')
+notify('System', 'All features auto-enabled! Speed x3 + Noclip + ESP active')
 
 -- Chạy kiểm tra liên tục
 spawn(function()
