@@ -1,6 +1,5 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
@@ -8,13 +7,13 @@ local humanoid = character:WaitForChild("Humanoid")
 -- CẤU HÌNH
 local ESP_HEIGHT = 8 -- Độ cao ESP (stud)
 local TEXT_SIZE = 35 -- Kích thước chữ ESP
-local SPEED_MULTIPLIER = 15 -- Tốc độ chạy nhanh
+local SPEED_MULTIPLIER = 7.5 -- Tốc độ chạy nhanh
 local NOCLIP_SPEED = 10 -- Tốc độ noclip
 
 -- BIẾN TRẠNG THÁI
-local speedEnabled = false
-local noclipEnabled = false
-local tpwalking = false
+local speedEnabled = true
+local noclipEnabled = true
+local tpwalking = true
 local Clip = false
 local Noclipping = nil
 
@@ -39,90 +38,49 @@ local function antiRagdoll()
     end
 end
 
--- CHỨC NĂNG CHẠY NHANH (SPEED)
+-- CHỨC NĂNG CHẠY NHANH (SPEED) - TỰ ĐỘNG BẬT
 local originalWalkSpeed = humanoid.WalkSpeed
-local function toggleSpeed()
-    speedEnabled = not speedEnabled
-    
-    if speedEnabled then
-        humanoid.WalkSpeed = originalWalkSpeed * SPEED_MULTIPLIER
-        notify('Speed', 'Speed Enabled (x' .. SPEED_MULTIPLIER .. ')')
-    else
-        humanoid.WalkSpeed = originalWalkSpeed
-        notify('Speed', 'Speed Disabled')
-    end
+local function enableSpeed()
+    humanoid.WalkSpeed = originalWalkSpeed * SPEED_MULTIPLIER
+    notify('Speed', 'Speed Auto-Enabled (x' .. SPEED_MULTIPLIER .. ')')
 end
 
--- CHỨC NĂNG ĐI XUYÊN TƯỜNG (NOCLIP)
-local function toggleNoclip()
-    noclipEnabled = not noclipEnabled
+-- CHỨC NĂNG ĐI XUYÊN TƯỜNG (NOCLIP) - TỰ ĐỘNG BẬT
+local function enableNoclip()
+    Clip = false
+    tpwalking = true
     
-    if noclipEnabled then
-        Clip = false
-        tpwalking = true
-        
-        -- Noclip loop
-        local function NoclipLoop()
-            if Clip == false and character and character.Parent then
-                for _, child in pairs(character:GetDescendants()) do
-                    if child:IsA("BasePart") and child.CanCollide == true then
-                        child.CanCollide = false
-                    end
-                end
-            end
-        end
-        
-        -- TP Walking loop
-        local function TPWalkLoop()
-            local chr = character
-            local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
-            
-            while tpwalking and chr and hum and hum.Parent do
-                local delta = RunService.Heartbeat:Wait()
-                if hum.MoveDirection.Magnitude > 0 then
-                    chr:TranslateBy(hum.MoveDirection * delta * NOCLIP_SPEED)
-                end
-            end
-        end
-        
-        Noclipping = RunService.Stepped:Connect(NoclipLoop)
-        spawn(TPWalkLoop)
-        
-        notify('Noclip', 'Noclip Enabled')
-    else
-        -- Tắt noclip
-        Clip = true
-        tpwalking = false
-        
-        if Noclipping then
-            Noclipping:Disconnect()
-            Noclipping = nil
-        end
-        
-        -- Khôi phục collision
-        wait(0.1)
-        if character then
+    -- Noclip loop
+    local function NoclipLoop()
+        if Clip == false and character and character.Parent then
             for _, child in pairs(character:GetDescendants()) do
-                if child:IsA("BasePart") and child.Name ~= "HumanoidRootPart" then
-                    child.CanCollide = true
+                if child:IsA("BasePart") and child.CanCollide == true then
+                    child.CanCollide = false
                 end
             end
         end
-        
-        notify('Noclip', 'Noclip Disabled')
     end
+    
+    -- TP Walking loop
+    local function TPWalkLoop()
+        local chr = character
+        local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+        
+        while tpwalking and chr and hum and hum.Parent do
+            local delta = RunService.Heartbeat:Wait()
+            if hum.MoveDirection.Magnitude > 0 then
+                chr:TranslateBy(hum.MoveDirection * delta * NOCLIP_SPEED)
+            end
+        end
+    end
+    
+    Noclipping = RunService.Stepped:Connect(NoclipLoop)
+    spawn(TPWalkLoop)
+    
+    notify('Noclip', 'Noclip Auto-Enabled')
 end
 
--- ĐIỀU KHIỂN PHÍM
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
-    if input.KeyCode == Enum.KeyCode.LeftShift then
-        toggleSpeed()
-    elseif input.KeyCode == Enum.KeyCode.N then
-        toggleNoclip()
-    end
-end)
+-- ĐIỀU KHIỂN PHÍM (ĐÃ XÓA - KHÔNG CẦN THIẾT)
 
 -- Tạo ESP cho các nhà
 local ESPs = {}
@@ -208,20 +166,17 @@ player.CharacterAdded:Connect(function(newCharacter)
     originalWalkSpeed = humanoid.WalkSpeed
     antiRagdoll()
     
-    -- Reset trạng thái
-    speedEnabled = false
-    noclipEnabled = false
-    tpwalking = false
-    Clip = false
-    if Noclipping then
-        Noclipping:Disconnect()
-        Noclipping = nil
-    end
+    -- Tự động bật lại tất cả chức năng
+    wait(1) -- Chờ character load hoàn toàn
+    enableSpeed()
+    enableNoclip()
 end)
 
 -- Khởi tạo hệ thống
 antiRagdoll()
-notify('System', 'Script loaded! Controls: Left Shift = Speed, N = Noclip')
+enableSpeed()
+enableNoclip()
+notify('System', 'All features auto-enabled! Speed x7.5 + Noclip + ESP active')
 
 -- Chạy kiểm tra liên tục
 spawn(function()
