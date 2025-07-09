@@ -1,3 +1,4 @@
+-- update
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
@@ -5,10 +6,10 @@ local character = player.Character
 local humanoid = character and character:FindFirstChild("Humanoid")
 
 -- CẤU HÌNH
-local WALKSPEED = 100 -- Tăng tốc độ lên 100
-local ESP_HEIGHT = 10 -- Độ cao ESP tăng lên
-local TEXT_SIZE = 40 -- Chữ to hơn
-local ANTI_FALL_HEIGHT = 20 -- Độ cao teleport khi rơi
+local WALKSPEED = 100
+local ESP_HEIGHT = 10
+local TEXT_SIZE = 40
+local ANTI_FALL_Y = 6 -- Độ cao Y cố định khi chống rơi
 
 -- Biến toàn cục
 local ESPs = {}
@@ -144,7 +145,16 @@ local function removeForcefields()
                         for _, child in ipairs(buttons:GetChildren()) do
                             if child.Name:find("ForceField") then
                                 child:Destroy()
+                                print("Đã xóa forcefield: "..child.Name)
                             end
+                        end
+                    end
+                    
+                    -- Xóa các forcefield khác trong folder nếu có
+                    for _, child in ipairs(forcefieldFolder:GetChildren()) do
+                        if child.Name:find("ForceField") then
+                            child:Destroy()
+                            print("Đã xóa forcefield: "..child.Name)
                         end
                     end
                 end
@@ -153,12 +163,18 @@ local function removeForcefields()
     end
 end
 
--- Teleport lên cao khi đang rơi
+-- Teleport lên độ cao Y=6 khi đang rơi
 local function antiFall()
     if character and humanoid then
         local rootPart = character:FindFirstChild("HumanoidRootPart")
         if rootPart and humanoid:GetState() == Enum.HumanoidStateType.Freefall then
-            rootPart.CFrame = rootPart.CFrame + Vector3.new(0, ANTI_FALL_HEIGHT, 0)
+            -- Lấy vị trí hiện tại
+            local currentPosition = rootPart.Position
+            -- Tạo vị trí mới với Y = 6
+            local newPosition = Vector3.new(currentPosition.X, ANTI_FALL_Y, currentPosition.Z)
+            rootPart.CFrame = CFrame.new(newPosition)
+            -- Đặt vận tốc về 0 để ngừng rơi
+            rootPart.Velocity = Vector3.new(0,0,0)
         end
     end
 end
@@ -184,7 +200,7 @@ if character then
     setupCharacter(character)
 end
 
--- Chạy kiểm tra liên tục
+-- Chạy kiểm tra ESP liên tục
 spawn(function()
     while true do
         pcall(checkTycoons)
@@ -200,7 +216,7 @@ spawn(function()
     end
 end)
 
--- Chạy hàm xóa forcefield
+-- Chạy hàm xóa forcefield (chỉ một lần khi khởi động)
 removeForcefields()
 
 -- Gỡ bỏ khi script bị hủy
