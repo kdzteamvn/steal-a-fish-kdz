@@ -1,3 +1,4 @@
+-- Roblox Steal Script với UI
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -9,40 +10,58 @@ local playerGui = player:WaitForChild("PlayerGui")
 -- Biến kiểm soát cooldown
 local isOnCooldown = false
 
--- Tạo ScreenGui
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "StealGui"
-screenGui.Parent = playerGui
+-- Biến lưu trữ UI components
+local screenGui
+local mainFrame
+local stealButton
 
--- Tạo Frame chính (nền đen)
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 200, 0, 60)
-mainFrame.Position = UDim2.new(0.5, -100, 0.1, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-mainFrame.BorderSizePixel = 0
-mainFrame.Parent = screenGui
+-- Hàm tạo UI
+local function createUI()
+    -- Xóa UI cũ nếu có
+    local oldGui = playerGui:FindFirstChild("StealGui")
+    if oldGui then
+        oldGui:Destroy()
+    end
+    
+    -- Tạo ScreenGui mới
+    screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "StealGui"
+    screenGui.ResetOnSpawn = false -- Quan trọng: không reset khi respawn
+    screenGui.Parent = playerGui
 
--- Bo tròn góc cho frame chính
-local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 10)
-mainCorner.Parent = mainFrame
+    -- Tạo Frame chính (nền đen)
+    mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(0, 200, 0, 60)
+    mainFrame.Position = UDim2.new(0.5, -100, 0.1, 0)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = screenGui
 
--- Tạo nút bấm (màu xanh)
-local stealButton = Instance.new("TextButton")
-stealButton.Size = UDim2.new(1, -10, 1, -10)
-stealButton.Position = UDim2.new(0, 5, 0, 5)
-stealButton.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
-stealButton.Text = "Steal | KDZ Hub"
-stealButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-stealButton.TextScaled = true
-stealButton.Font = Enum.Font.SourceSansBold
-stealButton.BorderSizePixel = 0
-stealButton.Parent = mainFrame
+    -- Bo tròn góc cho frame chính
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 10)
+    mainCorner.Parent = mainFrame
 
--- Bo tròn góc cho nút bấm
-local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 8)
-buttonCorner.Parent = stealButton
+    -- Tạo nút bấm (màu xanh)
+    stealButton = Instance.new("TextButton")
+    stealButton.Size = UDim2.new(1, -10, 1, -10)
+    stealButton.Position = UDim2.new(0, 5, 0, 5)
+    stealButton.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
+    stealButton.Text = "Steal | KDZ Hub"
+    stealButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    stealButton.TextScaled = true
+    stealButton.Font = Enum.Font.SourceSansBold
+    stealButton.BorderSizePixel = 0
+    stealButton.Parent = mainFrame
+
+    -- Bo tròn góc cho nút bấm
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 8)
+    buttonCorner.Parent = stealButton
+    
+    -- Kết nối events cho button
+    connectButtonEvents()
+end
 
 -- Hàm teleport người chơi
 local function teleportPlayer(x, y, z)
@@ -147,34 +166,37 @@ local function startCountdown()
     updateCountdown()
 end
 
--- Xử lý khi nhấn nút
-stealButton.MouseButton1Click:Connect(function()
-    if isOnCooldown then return end
-    
-    isOnCooldown = true
-    
-    -- Teleport đến vị trí chỉ định
-    teleportPlayer(51.59375, 100, 140.355255)
-    
-    -- Bắt đầu đếm ngược
-    spawn(function()
-        startCountdown()
+-- Hàm kết nối events cho button
+local function connectButtonEvents()
+    -- Xử lý khi nhấn nút
+    stealButton.MouseButton1Click:Connect(function()
+        if isOnCooldown then return end
+        
+        isOnCooldown = true
+        
+        -- Teleport đến vị trí chỉ định
+        teleportPlayer(51.59375, 100, 140.355255)
+        
+        -- Bắt đầu đếm ngược
+        spawn(function()
+            startCountdown()
+        end)
     end)
-end)
 
--- Hiệu ứng hover cho nút bấm
-stealButton.MouseEnter:Connect(function()
-    if not isOnCooldown then
-        local tween = TweenService:Create(stealButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 140, 220)})
-        tween:Play()
-    end
-end)
+    -- Hiệu ứng hover cho nút bấm
+    stealButton.MouseEnter:Connect(function()
+        if not isOnCooldown then
+            local tween = TweenService:Create(stealButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 140, 220)})
+            tween:Play()
+        end
+    end)
 
-stealButton.MouseLeave:Connect(function()
-    if not isOnCooldown then
-        local tween = TweenService:Create(stealButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 162, 255)})
-        tween:Play()
-    end
-end)
+    stealButton.MouseLeave:Connect(function()
+        if not isOnCooldown then
+            local tween = TweenService:Create(stealButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 162, 255)})
+            tween:Play()
+        end
+    end)
+end
 
 print("Steal Script loaded successfully!")
