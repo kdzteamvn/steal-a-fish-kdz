@@ -19,7 +19,7 @@ screenGui.Parent = playerGui
 -- Tạo Frame chính (nền đen)
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 200, 0, 60)
-mainFrame.Position = UDim2.new(0.5, -100, 0.1, 0)
+mainFrame.Position = UDim2.new(0.8, -100, 0.3, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
